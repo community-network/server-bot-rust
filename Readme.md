@@ -1,4 +1,6 @@
 # Discord status bots for battlefield
+This bot shows info about your battlefield servers and updates it every 2 minutes, this bot can also send updates when the status of the server changes. same as the python version, but better when needing running 50 at a time.
+
 run with 
 ```bash
 export token=TOKEN
@@ -28,6 +30,7 @@ services:
         - prevrequestcount=5
         - startedamount=50
         - guild=0
+        - game=tunguska
         - lang=en-us
       healthcheck:
         test: ["CMD", "curl", "-f", "http://127.0.0.1:3030/"]
@@ -36,3 +39,20 @@ services:
         start_period: "5s"
         retries: 3
 ```
+
+This initially used the game api directly, but to not login to the api constandly (many groups use this, so could block logins) it was made to use our main api.
+
+### Game names:
+"tunguska" = Battlefield 1
+
+"casablanca" = Battlefield V
+
+"kingston" = Battlefield 2042
+
+#### API Documentation:
+- [api.gametools.network](https://api.gametools.network/docs)
+
+#### example images:
+![messages send by bot](https://media.discordapp.net/attachments/722532776523464725/828958877071966267/unknown.png)
+
+![serverinfo bots example](https://cdn.discordapp.com/attachments/722532776523464725/828955160336269332/unknown.png)
