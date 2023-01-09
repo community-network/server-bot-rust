@@ -29,6 +29,7 @@ impl EventHandler for Handler {
         };
 
         let statics = message::Static {
+            server_id: env::var("guid").unwrap_or("none".to_string()),
             game: env::var("game").unwrap_or("tunguska".to_string()),
             owner_id: env::var("ownerId").unwrap_or("none".to_string()),
             fake_players: env::var("fakeplayers").unwrap_or("no".to_string()),

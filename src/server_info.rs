@@ -33,6 +33,8 @@ pub struct MainInfo {
     pub game_id: Option<String>,
     #[serde(rename = "ownerId")]
     pub owner_id: Option<String>,
+    #[serde(rename = "serverId")]
+    pub server_id: Option<String>,
 }
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DetailedInfo {
@@ -117,7 +119,7 @@ async fn get(statics: message::Static, game_id: &String) -> Result<ServerInfo> {
     }
 
     let mut info = json!(null);
-    
+
     // get via ownerid if newer than bf1
     if &statics.owner_id[..] != "none" && (&statics.game[..] != "tunguska" && &statics.game[..] != "bf4") {
         // fail on error
@@ -125,13 +127,30 @@ async fn get(statics: message::Static, game_id: &String) -> Result<ServerInfo> {
             Some(result) => result.as_array().unwrap(),
             None => anyhow::bail!("Failed to get serverlist from main api"),
         };
-
         // use ownerid to select server
         for (i, server) in servers.iter().enumerate() {
             if serde_json::from_value::<MainInfo>(server.to_owned())?
                 .owner_id
                 .unwrap_or("".to_string())
                 == statics.owner_id
+            {
+                info = response["servers"][i].to_owned();
+                break;
+            }
+        }
+    // try with guid (which should be static)
+    } else if &statics.server_id[..] != "none" {
+        // fail on error
+        let servers = match response.get("servers") {
+            Some(result) => result.as_array().unwrap(),
+            None => anyhow::bail!("Failed to get serverlist from main api"),
+        };
+        // use ownerid to select server
+        for (i, server) in servers.iter().enumerate() {
+            if serde_json::from_value::<MainInfo>(server.to_owned())?
+                .server_id
+                .unwrap_or("".to_string())
+                == statics.server_id
             {
                 info = response["servers"][i].to_owned();
                 break;

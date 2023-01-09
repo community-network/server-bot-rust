@@ -13,6 +13,7 @@ pub struct Global {
 
 #[derive(Clone, Debug)]
 pub struct Static {
+    pub server_id: String,
     pub game: String,
     pub owner_id: String,
     pub fake_players: String,
