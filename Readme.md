@@ -40,7 +40,7 @@ services:
         retries: 3
 ```
 
-This initially used the game api directly, but to not login to the api constandly (many groups use this, so could block logins) it was made to use our main api.
+This initially used the game api directly, but to not login to the api constandly (many groups use this, so could block logins) it was made to use our main api. it uses the codename for the game for backwards compatability with all locations it is used.
 
 ### Game names:
 "tunguska" = Battlefield 1
