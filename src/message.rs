@@ -82,7 +82,7 @@ pub async fn check(ctx: Context, status: server_info::ServerInfo, mut globals: G
         globals.previous_request.push(status.detailed.current_players); // add current in back
     };
 
-    globals.game_id = status.game_id.unwrap_or("".to_string());
+    globals.game_id = status.game_id.unwrap_or_default();
     Ok(globals)
 }
 
@@ -91,7 +91,7 @@ pub async fn send(ctx: Context, statics: Static, image_url: &str, status: server
     let paths = vec![image_url];
     ChannelId(statics.message_channel).send_files(&ctx.http, paths, |m| {    
         m.embed(|e| {
-            e.url(format!("https://gametools.network/servers/bf1/gameid/{}/pc", status.game_id.unwrap_or("".to_string())));
+            e.url(format!("https://gametools.network/servers/bf1/gameid/{}/pc", status.game_id.unwrap_or_default()));
             e.title(title);
             e.description(description);
             e.footer(|f| {

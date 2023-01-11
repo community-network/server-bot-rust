@@ -84,11 +84,11 @@ async fn request_list(statics: &message::Static, game: &str, client: &reqwest::C
         .await?)
 }
 
-async fn request_detailed(statics: &message::Static, game_id: &String, game: &str, client: &reqwest::Client) -> Result<serde_json::Value> {
+async fn request_detailed(statics: &message::Static, game_id: &str, game: &str, client: &reqwest::Client) -> Result<serde_json::Value> {
     let mut url =
         Url::parse(&format!("https://api.gametools.network/{}/detailedserver/", game)[..]).unwrap();
     url.query_pairs_mut()
-        .append_pair("gameid", &game_id[..])
+        .append_pair("gameid", game_id)
         .append_pair("lang", &statics.lang[..]);
 
     Ok(client
@@ -114,7 +114,7 @@ async fn get(statics: message::Static, game_id: &String) -> Result<ServerInfo> {
     let client = reqwest::Client::new();
     // try twice first
     let mut response = request_list(&statics, game, &client).await?;
-    if response.get("errors") != None {
+    if response.get("errors").is_some() {
         response = request_list(&statics, game, &client).await?;
     }
 
@@ -131,7 +131,7 @@ async fn get(statics: message::Static, game_id: &String) -> Result<ServerInfo> {
         for (i, server) in servers.iter().enumerate() {
             if serde_json::from_value::<MainInfo>(server.to_owned())?
                 .owner_id
-                .unwrap_or("".to_string())
+                .unwrap_or_default()
                 == statics.owner_id
             {
                 info = response["servers"][i].to_owned();
@@ -149,7 +149,7 @@ async fn get(statics: message::Static, game_id: &String) -> Result<ServerInfo> {
         for (i, server) in servers.iter().enumerate() {
             if serde_json::from_value::<MainInfo>(server.to_owned())?
                 .server_id
-                .unwrap_or("".to_string())
+                .unwrap_or_default()
                 == statics.server_id
             {
                 info = response["servers"][i].to_owned();
@@ -158,7 +158,7 @@ async fn get(statics: message::Static, game_id: &String) -> Result<ServerInfo> {
         }
     } else {
         // get first server or null (for game_id)
-        if response.get("errors") == None {
+        if response.get("errors").is_none() {
             info = response["servers"][0].to_owned();
         }
     }
@@ -166,21 +166,21 @@ async fn get(statics: message::Static, game_id: &String) -> Result<ServerInfo> {
     // update game_id if it can be gathered
     let mut game_id = game_id.to_string();
     if !info.is_null() {
-        game_id = serde_json::from_value::<MainInfo>(info.clone())?.game_id.unwrap_or("".to_string());
+        game_id = serde_json::from_value::<MainInfo>(info.clone())?.game_id.unwrap_or_default();
     }
 
     // get detailed via old or new game_id
     let detailed  = match &statics.game[..] {
         "tunguska" | "bf4" => {
             let mut detailed_response = request_detailed(&statics, &game_id, game, &client).await?;
-            if detailed_response.get("errors") != None {
+            if detailed_response.get("errors").is_some() {
                 detailed_response = request_detailed(&statics, &game_id, game, &client).await?;
             }
             
             let mut detailed = serde_json::from_value::<DetailedInfo>(detailed_response)?;
     
             if &statics.game[..] == "bf4" && &statics.fake_players[..] == "yes" {
-                detailed.current_players = detailed.fake_players.unwrap_or(0).clone();
+                detailed.current_players = detailed.fake_players.unwrap_or_default();
             }
             detailed
         },
@@ -257,15 +257,13 @@ pub async fn gen_img(status: ServerInfo, statics: message::Static) -> Result<Str
         .decode()?
         .brighten(-25);
     
-    let font: Font<>;
-
-    if &statics.game[..] == "kingston" || &statics.game[..] == "bf2042" {
+    let font: Font<> = if &statics.game[..] == "kingston" || &statics.game[..] == "bf2042" {
         let font_name = Vec::from(include_bytes!("BF_Modernista-Regular.ttf") as &[u8]);
-        font = Font::try_from_vec(font_name).unwrap();
+        Font::try_from_vec(font_name).unwrap()
     } else {
         let font_name = Vec::from(include_bytes!("Futura.ttf") as &[u8]);
-        font = Font::try_from_vec(font_name).unwrap();
-    }
+        Font::try_from_vec(font_name).unwrap()
+    };
 
     let small_font = Vec::from(include_bytes!("DejaVuSans.ttf") as &[u8]);
     let small_font = Font::try_from_vec(small_font).unwrap();

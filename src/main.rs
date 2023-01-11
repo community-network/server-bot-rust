@@ -29,21 +29,21 @@ impl EventHandler for Handler {
         };
 
         let statics = message::Static {
-            server_id: env::var("guid").unwrap_or("none".to_string()),
-            game: env::var("game").unwrap_or("tunguska".to_string()),
-            owner_id: env::var("ownerId").unwrap_or("none".to_string()),
-            fake_players: env::var("fakeplayers").unwrap_or("no".to_string()),
+            server_id: env::var("guid").unwrap_or_else(|_| "none".to_string()),
+            game: env::var("game").unwrap_or_else(|_| "tunguska".to_string()),
+            owner_id: env::var("ownerId").unwrap_or_else(|_| "none".to_string()),
+            fake_players: env::var("fakeplayers").unwrap_or_else(|_| "no".to_string()),
             server_name: env::var("name").expect("name wasn't given an argument!")
-                .replace("`","#").replace("*","\\\""),
+                .replace('`',"#").replace('*',"\\\""),
             lang: env::var("lang").expect("lang wasn't given an argument!").to_lowercase(),
             min_player_amount: env::var("minplayeramount").expect("minplayeramount wasn't given an argument!")
-                .parse::<i32>().ok().expect("I wasn't given an integer!"),
+                .parse::<i32>().expect("I wasn't given an integer!"),
             amount_of_prev_request: env::var("prevrequestcount").expect("prevrequestcount wasn't given an argument!")
-                .parse::<i32>().ok().expect("I wasn't given an integer!"),
+                .parse::<i32>().expect("I wasn't given an integer!"),
             message_channel: env::var("channel").expect("channel wasn't given an argument!")
-                .parse::<u64>().ok().expect("I wasn't given an integer!"),
+                .parse::<u64>().expect("I wasn't given an integer!"),
             started_amount: env::var("startedamount").expect("startedamount wasn't given an argument!")
-                .parse::<i32>().ok().expect("I wasn't given an integer!"),
+                .parse::<i32>().expect("I wasn't given an integer!"),
         };
         
         log::info!("Started monitoring server {:#?}", statics.server_name);
@@ -53,9 +53,9 @@ impl EventHandler for Handler {
                 let last_update_i64 = last_update_clone.load(atomic::Ordering::Relaxed);
                 let now_minutes = Utc::now().timestamp() / 60;
                 if (now_minutes - last_update_i64) > 5 {
-                    return warp::reply::with_status(format!("{}", now_minutes - last_update_i64), warp::http::StatusCode::SERVICE_UNAVAILABLE);
+                    warp::reply::with_status(format!("{}", now_minutes - last_update_i64), warp::http::StatusCode::SERVICE_UNAVAILABLE)
                 } else {
-                    return warp::reply::with_status(format!("{}", now_minutes - last_update_i64), warp::http::StatusCode::OK);
+                    warp::reply::with_status(format!("{}", now_minutes - last_update_i64), warp::http::StatusCode::OK)
                 }
             });
             warp::serve(hello).run(([0, 0, 0, 0], 3030)).await;
@@ -95,7 +95,7 @@ async fn status(ctx: Context, message_globals: message::Global, statics: message
         p.avatar(Some(&avatar))
     }).await;
 
-    Ok(message::check(ctx, status.clone(), message_globals, statics).await?)
+    message::check(ctx, status.clone(), message_globals, statics).await
 }
 
 #[tokio::main]
