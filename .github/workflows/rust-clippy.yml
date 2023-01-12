@@ -50,9 +50,6 @@ jobs:
             target/            
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
-          
-      - name: Install required cargo
-        run: cargo install clippy-sarif sarif-fmt
 
       - name: Run rust-clippy
         run:
