@@ -65,10 +65,14 @@ pub struct DetailedInfo {
 #[derive(Debug, Clone)]
 pub struct ServerInfo {
     pub game_id: Option<String>,
-    pub detailed: DetailedInfo
+    pub detailed: DetailedInfo,
 }
 
-async fn request_list(statics: &message::Static, game: &str, client: &reqwest::Client) -> Result<serde_json::Value> {
+async fn request_list(
+    statics: &message::Static,
+    game: &str,
+    client: &reqwest::Client,
+) -> Result<serde_json::Value> {
     let mut url =
         Url::parse(&format!("https://api.gametools.network/{}/servers/", game)[..]).unwrap();
     url.query_pairs_mut()
@@ -84,7 +88,12 @@ async fn request_list(statics: &message::Static, game: &str, client: &reqwest::C
         .await?)
 }
 
-async fn request_detailed(statics: &message::Static, game_id: &str, game: &str, client: &reqwest::Client) -> Result<serde_json::Value> {
+async fn request_detailed(
+    statics: &message::Static,
+    game_id: &str,
+    game: &str,
+    client: &reqwest::Client,
+) -> Result<serde_json::Value> {
     let mut url =
         Url::parse(&format!("https://api.gametools.network/{}/detailedserver/", game)[..]).unwrap();
     url.query_pairs_mut()
@@ -110,7 +119,7 @@ async fn get(statics: message::Static, game_id: &String) -> Result<ServerInfo> {
     } else {
         game = &statics.game[..]
     }
-    
+
     let client = reqwest::Client::new();
     // try twice first
     let mut response = request_list(&statics, game, &client).await?;
@@ -121,7 +130,9 @@ async fn get(statics: message::Static, game_id: &String) -> Result<ServerInfo> {
     let mut info = json!(null);
 
     // get via ownerid if newer than bf1
-    if &statics.owner_id[..] != "none" && (&statics.game[..] != "tunguska" && &statics.game[..] != "bf4") {
+    if &statics.owner_id[..] != "none"
+        && (&statics.game[..] != "tunguska" && &statics.game[..] != "bf4")
+    {
         // fail on error
         let servers = match response.get("servers") {
             Some(result) => result.as_array().unwrap(),
@@ -166,24 +177,26 @@ async fn get(statics: message::Static, game_id: &String) -> Result<ServerInfo> {
     // update game_id if it can be gathered
     let mut game_id = game_id.to_string();
     if !info.is_null() {
-        game_id = serde_json::from_value::<MainInfo>(info.clone())?.game_id.unwrap_or_default();
+        game_id = serde_json::from_value::<MainInfo>(info.clone())?
+            .game_id
+            .unwrap_or_default();
     }
 
     // get detailed via old or new game_id
-    let detailed  = match &statics.game[..] {
+    let detailed = match &statics.game[..] {
         "tunguska" | "bf4" => {
             let mut detailed_response = request_detailed(&statics, &game_id, game, &client).await?;
             if detailed_response.get("errors").is_some() {
                 detailed_response = request_detailed(&statics, &game_id, game, &client).await?;
             }
-            
+
             let mut detailed = serde_json::from_value::<DetailedInfo>(detailed_response)?;
-    
+
             if &statics.game[..] == "bf4" && &statics.fake_players[..] == "yes" {
                 detailed.current_players = detailed.fake_players.unwrap_or_default();
             }
             detailed
-        },
+        }
         _ => {
             let payload = serde_json::from_value::<MainInfo>(info)?;
             DetailedInfo {
@@ -205,11 +218,15 @@ async fn get(statics: message::Static, game_id: &String) -> Result<ServerInfo> {
     // game_id is saved if server cant be found with search
     Ok(ServerInfo {
         game_id: Some(game_id),
-        detailed
+        detailed,
     })
 }
 
-pub async fn change_name(ctx: Context, statics: message::Static, game_id: &String) -> Result<ServerInfo> {
+pub async fn change_name(
+    ctx: Context,
+    statics: message::Static,
+    game_id: &String,
+) -> Result<ServerInfo> {
     let status = match get(statics, game_id).await {
         Ok(status) => {
             let mut server_info = format!(
@@ -222,22 +239,24 @@ pub async fn change_name(ctx: Context, statics: message::Static, game_id: &Strin
             if status.detailed.in_que.unwrap_or(0) == 0 {
                 server_info = format!(
                     "{}/{} - {}",
-                    status.detailed.current_players, status.detailed.max_players, status.detailed.server_map,
+                    status.detailed.current_players,
+                    status.detailed.max_players,
+                    status.detailed.server_map,
                 );
             }
             // change game activity
             ctx.set_activity(Activity::playing(server_info)).await;
 
             status
-        },
+        }
         Err(e) => {
             let server_info = "¯\\_(ツ)_/¯ server not found";
             ctx.set_activity(Activity::playing(server_info)).await;
 
             anyhow::bail!(format!("Failed to get new serverinfo: {}", e))
-        },
+        }
     };
-    
+
     Ok(status)
 }
 
@@ -256,8 +275,8 @@ pub async fn gen_img(status: ServerInfo, statics: message::Static) -> Result<Str
         .with_guessed_format()?
         .decode()?
         .brighten(-25);
-    
-    let font: Font<> = if &statics.game[..] == "kingston" || &statics.game[..] == "bf2042" {
+
+    let font: Font = if &statics.game[..] == "kingston" || &statics.game[..] == "bf2042" {
         let font_name = Vec::from(include_bytes!("BF_Modernista-Regular.ttf") as &[u8]);
         Font::try_from_vec(font_name).unwrap()
     } else {
@@ -285,7 +304,7 @@ pub async fn gen_img(status: ServerInfo, statics: message::Static) -> Result<Str
     } else if &statics.game[..] == "kingston" || &statics.game[..] == "bf2042" {
         middle = 3.15;
     }
-    
+
     draw_text_mut(
         &mut img2,
         Rgba([255u8, 255u8, 255u8, 255u8]),
@@ -302,7 +321,7 @@ pub async fn gen_img(status: ServerInfo, statics: message::Static) -> Result<Str
         x: (img2.width() / 9) as f32,
         y: (img2.height() / 6) as f32,
     };
-    if  &statics.game[..] == "tunguska" || &statics.game[..] == "bf4" {
+    if &statics.game[..] == "tunguska" || &statics.game[..] == "bf4" {
         draw_text_mut(
             &mut img2,
             Rgba([255u8, 255u8, 255u8, 255u8]),
