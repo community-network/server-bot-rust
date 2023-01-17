@@ -14,7 +14,7 @@ ENV prevrequestcount '5'
 ENV startedamount '50'
 ENV guild default_guild_value
 ENV lang 'en-us'
-ENV guid 'false'
+ENV guid 'none'
 ENV ownerId 'none'
 
 HEALTHCHECK --interval=5m --timeout=3s --start-period=5s \
