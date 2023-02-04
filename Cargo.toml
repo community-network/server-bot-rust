@@ -5,7 +5,7 @@ authors = ["Zefanja Jobse <zefanjaj@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-tokio = { version = "1.23.0", features = ["rt", "rt-multi-thread"] }
+tokio = { version = "1.24.2", features = ["rt", "rt-multi-thread"] }
 anyhow = "1.0.68"
 serde_json = { version = "1.0.91" }
 serde = { version = "1.0.152", features = ["derive"] }
