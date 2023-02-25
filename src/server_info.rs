@@ -19,16 +19,18 @@ pub struct MainInfo {
     pub in_que: Option<i32>,
     #[serde(rename = "smallMode")]
     pub small_mode: String,
-
     #[serde(rename = "currentMap")]
-    pub server_map: String,
+    pub server_map: Option<String>,
+    pub map: String,
     #[serde(rename = "url")]
-    pub map_url: String,
+    pub map_url: Option<String>,
+    #[serde(rename = "mapImage")]
+    pub map_image: Option<String>,
     #[serde(rename = "mode")]
-    pub map_mode: String,
+    pub map_mode: Option<String>,
     #[serde(rename = "prefix")]
     pub server_name: String,
-    pub region: String,
+    pub region: Option<String>,
     #[serde(rename = "gameId")]
     pub game_id: Option<String>,
     #[serde(rename = "ownerId")]
@@ -205,10 +207,19 @@ async fn get(statics: message::Static, game_id: &String) -> Result<ServerInfo> {
                 in_que: payload.in_que,
                 small_mode: payload.small_mode,
                 server_name: payload.server_name,
-                server_map: payload.server_map,
-                map_url: payload.map_url,
-                map_mode: payload.map_mode,
-                region: payload.region,
+                server_map: match payload.server_map {
+                    Some(map_name) => map_name,
+                    None => payload.map,
+                },
+                map_url: match payload.map_url {
+                    Some(map_url) => map_url,
+                    None => payload.map_image.unwrap_or_default(),
+                },
+                map_mode: payload.map_mode.unwrap_or_default(),
+                region: match payload.region {
+                    Some(region) => region,
+                    None => "".into(),
+                },
                 favorites: "0".to_string(),
                 fake_players: Some(0),
             }
