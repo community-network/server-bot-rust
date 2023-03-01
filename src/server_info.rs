@@ -21,7 +21,7 @@ pub struct MainInfo {
     pub small_mode: String,
     #[serde(rename = "currentMap")]
     pub server_map: Option<String>,
-    pub map: String,
+    pub map: Option<String>,
     #[serde(rename = "url")]
     pub map_url: Option<String>,
     #[serde(rename = "mapImage")]
@@ -209,7 +209,7 @@ async fn get(statics: message::Static, game_id: &String) -> Result<ServerInfo> {
                 server_name: payload.server_name,
                 server_map: match payload.server_map {
                     Some(map_name) => map_name,
-                    None => payload.map,
+                    None => payload.map.unwrap_or_default(),
                 },
                 map_url: match payload.map_url {
                     Some(map_url) => map_url,
