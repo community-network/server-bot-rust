@@ -5,28 +5,28 @@ authors = ["Zefanja Jobse <zefanjaj@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-tokio = { version = "1.24.2", features = ["rt", "rt-multi-thread"] }
-anyhow = "1.0.68"
-serde_json = { version = "1.0.91" }
-serde = { version = "1.0.152", features = ["derive"] }
-rusttype = "0.9.3"
-imageproc = "0.23.0"
-chrono = "0.4.23"
-warp = "0.3.3"
-flexi_logger = "0.24.2"
-log = "0.4.17"
+tokio = { version = "1.24", features = ["rt", "rt-multi-thread"] }
+anyhow = "1.0"
+serde_json = { version = "1.0" }
+serde = { version = "1.0", features = ["derive"] }
+rusttype = "0.9"
+imageproc = "0.23"
+chrono = "0.4"
+warp = "0.3"
+flexi_logger = "0.25"
+log = "0.4"
 
 [dependencies.image]
-version = "0.24.5"
+version = "0.24"
 default-features = false
 features = ["jpeg", "png"]
 
 [dependencies.serenity]
-version = "0.11.5"
+version = "0.11"
 default-features = false
 features = ["client", "gateway", "rustls_backend", "model", "cache"]
 
 [dependencies.reqwest]
-version = "0.11.13"
+version = "0.11"
 default-features = false
 features = ["rustls-tls", "json"]
