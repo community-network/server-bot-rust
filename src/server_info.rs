@@ -29,7 +29,8 @@ pub struct MainInfo {
     #[serde(rename = "mode")]
     pub map_mode: Option<String>,
     #[serde(rename = "prefix")]
-    pub server_name: String,
+    pub server_name: Option<String>,
+    pub server: Option<String>,
     pub region: Option<String>,
     #[serde(rename = "gameId")]
     pub game_id: Option<String>,
@@ -133,7 +134,7 @@ async fn get(statics: message::Static, game_id: &String) -> Result<ServerInfo> {
 
     // get via ownerid if newer than bf1
     if &statics.owner_id[..] != "none"
-        && (&statics.game[..] != "tunguska" && &statics.game[..] != "bf4")
+        && (&statics.game[..] == "casablanca" || &statics.game[..] == "kingston")
     {
         // fail on error
         let servers = match response.get("servers") {
@@ -206,7 +207,9 @@ async fn get(statics: message::Static, game_id: &String) -> Result<ServerInfo> {
                 max_players: payload.max_players,
                 in_que: payload.in_que,
                 small_mode: payload.small_mode,
-                server_name: payload.server_name,
+                server_name: payload
+                    .server_name
+                    .unwrap_or(payload.server.unwrap_or_default()),
                 server_map: match payload.server_map {
                     Some(map_name) => map_name,
                     None => payload.map.unwrap_or_default(),
@@ -264,7 +267,7 @@ pub async fn change_name(
             let server_info = "¯\\_(ツ)_/¯ server not found";
             ctx.set_activity(Activity::playing(server_info)).await;
 
-            anyhow::bail!(format!("Failed to get new serverinfo: {}", e))
+            anyhow::bail!(format!("Failed to get new serverinfo: {:#?}", e))
         }
     };
 

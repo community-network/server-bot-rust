@@ -91,7 +91,7 @@ impl EventHandler for Handler {
                 {
                     Ok(item) => item,
                     Err(e) => {
-                        log::error!("cant get new stats: {}", e);
+                        log::error!("cant get new stats: {:#?}", e);
                         // return old if it cant find new details
                         old_message_globals.clone()
                     }
@@ -125,7 +125,7 @@ async fn status(
 async fn main() -> anyhow::Result<()> {
     log::set_max_level(log::LevelFilter::Info);
     flexi_logger::Logger::try_with_str("warn,discord_bot=info")
-        .unwrap_or_else(|e| panic!("Logger initialization failed with {}", e))
+        .unwrap_or_else(|e| panic!("Logger initialization failed with {:#?}", e))
         .start()?;
 
     // Login with a bot token from the environment

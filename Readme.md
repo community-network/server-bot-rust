@@ -1,7 +1,26 @@
 # Discord status bots for battlefield
+
 This bot shows info about your battlefield servers and updates it every 2 minutes, this bot can also send updates when the status of the server changes. same as the python version, but better when needing running 50 at a time.
 
-run with 
+### Environment items:
+
+```yaml
+guid: serverid (optional)
+game: game name (tunguska, casablanca, kingston, bf4)
+ownerId: server owner playerid (optional for casablanca and kingston)
+fakeplayers: removes bots on bf4's playercount if set to yes (optional, default no)
+name: servername
+lang: language (en-us)
+
+for status in discord:
+minplayeramount: amount of change needed to count
+prevrequestcount: amount of request to use for the calculation if the difference is more than min_player_amount
+channel: channel where it needs to post the message if almost empty etc.
+startedamount: amount of players before it calls the server "started"
+```
+
+run with
+
 ```bash
 export token=TOKEN
 export name=SERVERNAME
@@ -15,6 +34,7 @@ cargo run
 ```
 
 Or use docker:
+
 ```docker
 version: '3.7'
 
@@ -43,6 +63,7 @@ services:
 This initially used the game api directly, but to not login to the api constandly (many groups use this, so could block logins) it was made to use our main api. it uses the codename for the game for backwards compatability with all locations it is used.
 
 ### Game names:
+
 "tunguska" = Battlefield 1
 
 "casablanca" = Battlefield V
@@ -50,9 +71,11 @@ This initially used the game api directly, but to not login to the api constandl
 "kingston" = Battlefield 2042
 
 #### API Documentation:
+
 - [api.gametools.network](https://api.gametools.network/docs)
 
 #### example images:
+
 ![messages send by bot](https://media.discordapp.net/attachments/722532776523464725/828958877071966267/unknown.png)
 
 ![serverinfo bots example](https://cdn.discordapp.com/attachments/722532776523464725/828955160336269332/unknown.png)
