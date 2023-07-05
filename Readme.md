@@ -47,6 +47,7 @@ services:
       environment:
         - token=TOKEN
         - name=[ACE]#1
+        - platform=pc
         - channel=0
         - minplayeramount=20
         - prevrequestcount=5
