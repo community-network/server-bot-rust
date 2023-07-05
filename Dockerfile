@@ -16,6 +16,7 @@ ENV guild default_guild_value
 ENV lang 'en-us'
 ENV guid 'none'
 ENV ownerId 'none'
+ENV platform 'pc'
 
 HEALTHCHECK --interval=5m --timeout=3s --start-period=5s \
   CMD curl -f http://127.0.0.1:3030/ || exit 1

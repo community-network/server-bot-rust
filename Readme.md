@@ -10,7 +10,8 @@ game: game name (tunguska, casablanca, kingston, bf4)
 ownerId: server owner playerid (optional for casablanca and kingston)
 fakeplayers: removes bots on bf4's playercount if set to yes (optional, default no)
 name: servername
-lang: language (en-us)
+lang: language (default en-us)
+platform: from which platform is the server (default pc)
 
 for status in discord:
 minplayeramount: amount of change needed to count
@@ -30,6 +31,7 @@ export prevrequestcount=5
 export channel=0
 export startedamount=50
 export game=tunguska
+export platform=pc
 cargo run
 ```
 

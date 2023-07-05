@@ -38,6 +38,8 @@ pub struct MainInfo {
     pub owner_id: Option<String>,
     #[serde(rename = "serverId")]
     pub server_id: Option<String>,
+    pub ip: Option<String>,
+    pub port: Option<String>,
 }
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DetailedInfo {
@@ -180,9 +182,21 @@ async fn get(statics: message::Static, game_id: &String) -> Result<ServerInfo> {
     // update game_id if it can be gathered
     let mut game_id = game_id.to_string();
     if !info.is_null() {
-        game_id = serde_json::from_value::<MainInfo>(info.clone())?
-            .game_id
-            .unwrap_or_default();
+        let server_info = serde_json::from_value::<MainInfo>(info.clone())?;
+        if game == "bf2042" {
+            game_id = server_info.server_id.unwrap_or_default();
+        } else if server_info.game_id.is_none()
+            && server_info.ip.is_some()
+            && server_info.port.is_some()
+        {
+            game_id = format!(
+                "{}:{}",
+                server_info.ip.unwrap_or_default(),
+                server_info.port.unwrap_or_default()
+            );
+        } else {
+            game_id = server_info.game_id.unwrap_or_default();
+        }
     }
 
     // get detailed via old or new game_id

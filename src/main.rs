@@ -36,6 +36,7 @@ impl EventHandler for Handler {
             server_id: env::var("guid").unwrap_or_else(|_| "none".to_string()),
             game: env::var("game").unwrap_or_else(|_| "tunguska".to_string()),
             owner_id: env::var("ownerId").unwrap_or_else(|_| "none".to_string()),
+            platform: env::var("platform").unwrap_or_else(|_| "pc".to_string()),
             fake_players: env::var("fakeplayers").unwrap_or_else(|_| "no".to_string()),
             server_name: env::var("name")
                 .expect("name wasn't given an argument!")

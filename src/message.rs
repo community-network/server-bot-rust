@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use serenity::{client::Context, model::id::ChannelId};
 use anyhow::Result;
 use super::server_info;
@@ -17,6 +15,7 @@ pub struct Global {
 pub struct Static {
     pub server_id: String,
     pub game: String,
+    pub platform: String,
     pub owner_id: String,
     pub fake_players: String,
     pub server_name: String,
@@ -91,14 +90,27 @@ pub async fn check(ctx: Context, status: server_info::ServerInfo, mut globals: G
 pub async fn send(ctx: Context, statics: Static, image_url: &str, status: server_info::ServerInfo, title: &str,
         description: &str) -> Result<serenity::model::channel::Message, serenity::Error> {
     let paths = vec![image_url];
-    let games = HashMap::from([
+    let games = std::collections::HashMap::from([
         ("tunguska", "bf1"),
         ("casablanca", "bfv"),
         ("kingston", "bf2042"),
     ]);
+    let mut gather_type = "gameid";
+    if statics.game == "kingston" {
+        gather_type = "serverid";
+    } else if status.game_id.clone().unwrap_or_default().contains(":") {
+        gather_type = "serverip";
+    }
+    let server_link = format!(
+        "https://gametools.network/servers/{}/{}/{}/{}",
+        games.get(&statics.game[..]).unwrap_or(&&statics.game[..]),
+        gather_type,
+        status.game_id.clone().unwrap_or_default(),
+        statics.platform
+    );
     ChannelId(statics.message_channel).send_files(&ctx.http, paths, |m| {    
         m.embed(|e| {
-            e.url(format!("https://gametools.network/servers/{}/gameid/{}/pc", games.get(&statics.game[..]).unwrap_or(&&statics.game[..]), status.game_id.unwrap_or_default()));
+            e.url(server_link);
             e.title(title);
             e.description(description);
             e.footer(|f| {
