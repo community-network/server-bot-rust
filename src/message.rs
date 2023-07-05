@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serenity::{client::Context, model::id::ChannelId};
 use anyhow::Result;
 use super::server_info;
@@ -89,9 +91,14 @@ pub async fn check(ctx: Context, status: server_info::ServerInfo, mut globals: G
 pub async fn send(ctx: Context, statics: Static, image_url: &str, status: server_info::ServerInfo, title: &str,
         description: &str) -> Result<serenity::model::channel::Message, serenity::Error> {
     let paths = vec![image_url];
+    let games = HashMap::from([
+        ("tunguska", "bf1"),
+        ("casablanca", "bfv"),
+        ("kingston", "bf2042"),
+    ]);
     ChannelId(statics.message_channel).send_files(&ctx.http, paths, |m| {    
         m.embed(|e| {
-            e.url(format!("https://gametools.network/servers/bf1/gameid/{}/pc", status.game_id.unwrap_or_default()));
+            e.url(format!("https://gametools.network/servers/{}/gameid/{}/pc", games.get(&statics.game[..]).unwrap_or(&&statics.game[..]), status.game_id.unwrap_or_default()));
             e.title(title);
             e.description(description);
             e.footer(|f| {
