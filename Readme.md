@@ -65,7 +65,7 @@ services:
 
 Or on windows: (.bat file)
 
-```
+```bat
 @ECHO OFF
 SET token=DISCORDTOKEN
 SET name=SUPER@ [SiC] S1
