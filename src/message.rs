@@ -98,7 +98,7 @@ pub async fn send(ctx: Context, statics: Static, image_url: &str, status: server
     let mut gather_type = "gameid";
     if statics.game == "kingston" {
         gather_type = "serverid";
-    } else if status.game_id.clone().unwrap_or_default().contains(":") {
+    } else if status.game_id.clone().unwrap_or_default().contains(':') {
         gather_type = "serverip";
     }
     let server_link = format!(
