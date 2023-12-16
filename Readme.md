@@ -20,22 +20,19 @@ channel: channel where it needs to post the message if almost empty etc.
 startedamount: amount of players before it calls the server "started"
 ```
 
-run with
+This initially used the game api directly, but to not login to the api constandly (many groups use this, so could block logins) it was changed to reuse our main api. it still uses the codenames for those games for backwards compatability with all locations it was already used.
 
-```bash
-export token=TOKEN
-export name=SERVERNAME
-export lang=en-us
-export minplayeramount=20
-export prevrequestcount=5
-export channel=0
-export startedamount=50
-export game=tunguska
-export platform=pc
-cargo run
-```
+### Game names:
 
-Or use docker:
+"tunguska" = Battlefield 1
+
+"casablanca" = Battlefield V
+
+"kingston" = Battlefield 2042
+
+## Using the bot
+
+You can run it with docker:
 
 ```docker
 version: '3.7'
@@ -63,7 +60,9 @@ services:
         retries: 3
 ```
 
-Or on windows: (.bat file)
+Or use the executable available [here](https://github.com/community-network/server-bot-rust/releases/latest)
+
+And use that on windows via a bat file:
 
 ```bat
 @ECHO OFF
@@ -75,25 +74,44 @@ SET minplayeramount=20
 SET prevrequestcount=5
 SET channel=0
 SET startedamount=50
-
-discord_bot.exe
+FILENAME.exe
 ```
 
-This initially used the game api directly, but to not login to the api constandly (many groups use this, so could block logins) it was made to use our main api. it uses the codename for the game for backwards compatability with all locations it is used.
+Or on Linux/Mac with these commands:
 
-### Game names:
+```bash
+export token=TOKEN
+export name=SERVERNAME
+export lang=en-us
+export minplayeramount=20
+export prevrequestcount=5
+export channel=0
+export startedamount=50
+export game=tunguska
+export platform=pc
+./FILENAME
+```
 
-"tunguska" = Battlefield 1
+If you want to run it with your own changes in the code, install [rust](https://www.rust-lang.org/tools/install) and run with:
 
-"casablanca" = Battlefield V
-
-"kingston" = Battlefield 2042
+```bash
+export token=TOKEN
+export name=SERVERNAME
+export lang=en-us
+export minplayeramount=20
+export prevrequestcount=5
+export channel=0
+export startedamount=50
+export game=tunguska
+export platform=pc
+cargo run
+```
 
 #### API Documentation:
 
 - [api.gametools.network](https://api.gametools.network/docs)
 
-#### example images:
+#### Example images:
 
 ![messages send by bot](https://media.discordapp.net/attachments/722532776523464725/828958877071966267/unknown.png)
 
