@@ -1,6 +1,7 @@
 use anyhow::Result;
 use chrono::Utc;
 use serenity::{
+    builder::{CreateAttachment, EditProfile},
     client::{Client, Context, EventHandler},
     model::gateway::Ready,
     prelude::GatewayIntents,
@@ -18,7 +19,7 @@ struct Handler;
 #[serenity::async_trait]
 impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, _: Ready) {
-        let user = ctx.cache.current_user();
+        let user = ctx.cache.current_user().clone();
         log::info!("Logged in as {:#?}", user.name);
 
         let last_update = Arc::new(atomic::AtomicI64::new(0));
@@ -115,9 +116,12 @@ async fn status(
     let image_loc = server_info::gen_img(status.clone(), statics.clone()).await?;
 
     // change avatar
-    let avatar = serenity::utils::read_image(image_loc).expect("Failed to read image");
-    let mut user = ctx.cache.current_user();
-    let _ = user.edit(&ctx, |p| p.avatar(Some(&avatar))).await;
+    let avatar = CreateAttachment::path(image_loc)
+        .await
+        .expect("Failed to read image");
+    let mut user = ctx.cache.current_user().clone();
+    user.edit(ctx.clone(), EditProfile::new().avatar(&avatar))
+        .await?;
 
     message::check(ctx, status.clone(), message_globals, statics).await
 }

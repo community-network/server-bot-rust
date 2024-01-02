@@ -6,7 +6,7 @@ use reqwest::Url;
 use rusttype::{Font, Scale};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use serenity::{client::Context, model::gateway::Activity};
+use serenity::{client::Context, gateway::ActivityData};
 use std::io::Cursor;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -273,13 +273,13 @@ pub async fn change_name(
                 );
             }
             // change game activity
-            ctx.set_activity(Activity::playing(server_info)).await;
+            ctx.set_activity(Some(ActivityData::playing(server_info)));
 
             status
         }
         Err(e) => {
             let server_info = "¯\\_(ツ)_/¯ server not found";
-            ctx.set_activity(Activity::playing(server_info)).await;
+            ctx.set_activity(Some(ActivityData::playing(server_info)));
 
             anyhow::bail!(format!("Failed to get new serverinfo: {:#?}", e))
         }
