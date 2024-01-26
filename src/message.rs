@@ -28,6 +28,7 @@ pub struct Static {
     pub amount_of_prev_request: i32,
     pub message_channel: u64,
     pub started_amount: i32,
+    pub mins_between_avatar_change: i32,
 }
 
 pub async fn check(

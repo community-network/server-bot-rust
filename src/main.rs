@@ -7,6 +7,7 @@ use serenity::{
     prelude::GatewayIntents,
 };
 use std::{
+    ops::Add,
     sync::{atomic, Arc},
     {env, time},
 };
@@ -62,6 +63,7 @@ impl EventHandler for Handler {
                 .expect("startedamount wasn't given an argument!")
                 .parse::<i32>()
                 .expect("I wasn't given an integer!"),
+            mins_between_avatar_change: 1,
         };
 
         log::info!("Started monitoring server {:#?}", statics.server_name);
@@ -87,11 +89,23 @@ impl EventHandler for Handler {
 
         // loop in seperate async
         tokio::spawn(async move {
+            // set update_avatar to 1 minute ago to allow changing on startup
+            let mut update_avatar = chrono::Utc::now()
+                - chrono::Duration::minutes(statics.mins_between_avatar_change.into());
             loop {
                 let old_message_globals = message_globals.clone();
-                message_globals = match status(ctx.clone(), message_globals, statics.clone()).await
+                message_globals = match status(
+                    ctx.clone(),
+                    message_globals,
+                    statics.clone(),
+                    update_avatar,
+                )
+                .await
                 {
-                    Ok(item) => item,
+                    Ok((item, time)) => {
+                        update_avatar = time;
+                        item
+                    }
                     Err(e) => {
                         log::error!("cant get new stats: {:#?}", e);
                         // return old if it cant find new details
@@ -110,20 +124,42 @@ async fn status(
     ctx: Context,
     message_globals: message::Global,
     statics: message::Static,
-) -> Result<message::Global> {
+    mut update_avatar: chrono::DateTime<Utc>,
+) -> Result<(message::Global, chrono::DateTime<Utc>)> {
     let status =
         server_info::change_name(ctx.clone(), statics.clone(), &message_globals.game_id).await?;
     let image_loc = server_info::gen_img(status.clone(), statics.clone()).await?;
 
-    // change avatar
-    let avatar = CreateAttachment::path(image_loc)
-        .await
-        .expect("Failed to read image");
-    let mut user = ctx.cache.current_user().clone();
-    user.edit(ctx.clone(), EditProfile::new().avatar(&avatar))
-        .await?;
+    // only allow updating once a minute to avoid spamming the avatar api
+    if update_avatar.add(chrono::Duration::minutes(
+        statics.mins_between_avatar_change.into(),
+    )) <= chrono::Utc::now()
+    {
+        // change avatar
+        let avatar = CreateAttachment::path(image_loc)
+            .await
+            .expect("Failed to read image");
+        let mut user = ctx.cache.current_user().clone();
 
-    message::check(ctx, status.clone(), message_globals, statics).await
+        if let Err(e) = user
+            .edit(ctx.clone(), EditProfile::new().avatar(&avatar))
+            .await
+        {
+            log::error!(
+                "Failed to set new avatar: {:?}\n adding timeout before retrying",
+                e
+            );
+            // add official avatar timeout if discord avatar timeout is reached
+            update_avatar = chrono::Utc::now().add(chrono::Duration::minutes(5));
+        } else {
+            update_avatar = chrono::Utc::now();
+        };
+    }
+
+    Ok((
+        message::check(ctx, status.clone(), message_globals, statics).await?,
+        update_avatar,
+    ))
 }
 
 #[tokio::main]
