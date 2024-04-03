@@ -32,7 +32,7 @@ This initially used the game api directly, but to not login to the api constandl
 
 ## Using the bot
 
-You can run it with docker:
+You can run it with Docker (Docker Compose):
 
 ```docker
 version: '3.7'
