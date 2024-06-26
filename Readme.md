@@ -10,6 +10,7 @@ guid: serverid (optional)
 game: game name (tunguska, casablanca, kingston, bf4)
 ownerId: server owner playerid (optional for casablanca and kingston)
 fakeplayers: removes bots on bf4's playercount if set to yes (optional, default no)
+serverbanner: (optional) if it has to set the banner image of the bot (defaults to yes)
 name: servername
 lang: language (default en-us)
 platform: from which platform is the server (default pc)

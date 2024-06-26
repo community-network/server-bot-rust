@@ -21,6 +21,7 @@ pub struct Static {
     pub platform: String,
     pub owner_id: String,
     pub fake_players: String,
+    pub set_banner_image: String,
     pub server_name: String,
     pub lang: String,
     pub min_player_amount: i32,

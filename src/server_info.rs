@@ -301,8 +301,10 @@ pub async fn gen_img(status: ServerInfo, statics: message::Static) -> Result<Str
         .await?;
     let mut img2 = ImageReader::new(Cursor::new(img))
         .with_guessed_format()?
-        .decode()?
-        .brighten(-25);
+        .decode()?;
+
+    img2.save("./map.jpg")?;
+    img2.brighten(-25);
 
     let font: FontRef = if &statics.game[..] == "kingston" || &statics.game[..] == "bf2042" {
         FontRef::try_from_slice(include_bytes!("BF_Modernista-Regular.ttf") as &[u8]).unwrap()

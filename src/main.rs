@@ -39,6 +39,7 @@ impl EventHandler for Handler {
             owner_id: env::var("ownerId").unwrap_or_else(|_| "none".to_string()),
             platform: env::var("platform").unwrap_or_else(|_| "pc".to_string()),
             fake_players: env::var("fakeplayers").unwrap_or_else(|_| "no".to_string()),
+            set_banner_image: env::var("serverbanner").unwrap_or_else(|_| "yes".to_string()),
             server_name: env::var("name")
                 .expect("name wasn't given an argument!")
                 .replace('`', "#")
@@ -140,10 +141,14 @@ async fn status(
             .expect("Failed to read image");
         let mut user = ctx.cache.current_user().clone();
 
-        if let Err(e) = user
-            .edit(ctx.clone(), EditProfile::new().avatar(&avatar))
-            .await
-        {
+        let mut new_profile = EditProfile::new().avatar(&avatar);
+        if &statics.set_banner_image[..] == "yes" {
+            let banner = CreateAttachment::path("./map.jpg")
+                .await
+                .expect("Failed to read banner image");
+            new_profile = new_profile.banner(&banner);
+        }
+        if let Err(e) = user.edit(ctx.clone(), new_profile).await {
             log::error!(
                 "Failed to set new avatar: {:?}\n adding timeout before retrying",
                 e
