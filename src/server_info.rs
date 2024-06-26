@@ -1,9 +1,9 @@
 use super::message;
+use ab_glyph::{FontRef, PxScale};
 use anyhow::Result;
 use image::{io::Reader as ImageReader, Rgba};
 use imageproc::drawing::draw_text_mut;
 use reqwest::Url;
-use rusttype::{Font, Scale};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serenity::{client::Context, gateway::ActivityData};
@@ -304,25 +304,22 @@ pub async fn gen_img(status: ServerInfo, statics: message::Static) -> Result<Str
         .decode()?
         .brighten(-25);
 
-    let font: Font = if &statics.game[..] == "kingston" || &statics.game[..] == "bf2042" {
-        let font_name = Vec::from(include_bytes!("BF_Modernista-Regular.ttf") as &[u8]);
-        Font::try_from_vec(font_name).unwrap()
+    let font: FontRef = if &statics.game[..] == "kingston" || &statics.game[..] == "bf2042" {
+        FontRef::try_from_slice(include_bytes!("BF_Modernista-Regular.ttf") as &[u8]).unwrap()
     } else {
-        let font_name = Vec::from(include_bytes!("Futura.ttf") as &[u8]);
-        Font::try_from_vec(font_name).unwrap()
+        FontRef::try_from_slice(include_bytes!("Futura.ttf") as &[u8]).unwrap()
     };
 
-    let small_font = Vec::from(include_bytes!("DejaVuSans.ttf") as &[u8]);
-    let small_font = Font::try_from_vec(small_font).unwrap();
+    let small_font = FontRef::try_from_slice(include_bytes!("DejaVuSans.ttf") as &[u8]).unwrap();
 
-    let img_size = Scale {
+    let img_size = PxScale {
         x: img2.width() as f32,
         y: img2.height() as f32,
     };
     let mut orig_img2 = img2.clone();
 
     // only smallmode
-    let scale = Scale {
+    let scale = PxScale {
         x: (img2.width() / 3) as f32,
         y: (img2.height() as f32 / 1.9),
     };
@@ -345,7 +342,7 @@ pub async fn gen_img(status: ServerInfo, statics: message::Static) -> Result<Str
     img2.save("./map_mode.jpg")?;
 
     // with favorites except bf5
-    let small_scale = Scale {
+    let small_scale = PxScale {
         x: (img2.width() / 9) as f32,
         y: (img2.height() / 6) as f32,
     };
@@ -363,7 +360,7 @@ pub async fn gen_img(status: ServerInfo, statics: message::Static) -> Result<Str
     img2.save("./info_image.jpg")?;
 
     // only favorites except bf5
-    let fav_scale = Scale {
+    let fav_scale = PxScale {
         x: (img2.width() / 7) as f32,
         y: (img2.height() as f32) / 4.5,
     };

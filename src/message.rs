@@ -12,7 +12,6 @@ pub struct Global {
     pub since_empty: bool,
     pub previous_request: Vec<i32>,
     pub since_player_trigger: i32,
-    pub status: String,
 }
 
 #[derive(Clone, Debug)]

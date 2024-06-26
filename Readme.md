@@ -5,6 +5,7 @@ This bot shows info about your battlefield servers and updates it every 2 minute
 ### Environment items:
 
 ```yaml
+token: discord bot token
 guid: serverid (optional)
 game: game name (tunguska, casablanca, kingston, bf4)
 ownerId: server owner playerid (optional for casablanca and kingston)

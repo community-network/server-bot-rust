@@ -31,7 +31,6 @@ impl EventHandler for Handler {
             since_empty: false,
             previous_request: Vec::new(),
             since_player_trigger: 5,
-            status: String::from(""),
         };
 
         let statics = message::Static {
@@ -87,7 +86,7 @@ impl EventHandler for Handler {
             warp::serve(hello).run(([0, 0, 0, 0], 3030)).await;
         });
 
-        // loop in seperate async
+        // loop in separate async
         tokio::spawn(async move {
             // set update_avatar to 1 minute ago to allow changing on startup
             let mut update_avatar = chrono::Utc::now()

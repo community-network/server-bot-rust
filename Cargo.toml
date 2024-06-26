@@ -9,15 +9,15 @@ tokio = { version = "1.35", features = ["rt", "rt-multi-thread"] }
 anyhow = "1.0"
 serde_json = { version = "1.0" }
 serde = { version = "1.0", features = ["derive"] }
-rusttype = "0.9"
-imageproc = "0.23"
+ab_glyph = "0.2"
+imageproc = "0.25"
 chrono = "0.4"
 warp = "0.3"
-flexi_logger = "0.27"
+flexi_logger = "0.28"
 log = "0.4"
 
 [dependencies.image]
-version = "0.24"
+version = "0.25"
 default-features = false
 features = ["jpeg", "png"]
 
@@ -27,6 +27,6 @@ default-features = false
 features = ["client", "gateway", "rustls_backend", "model", "cache"]
 
 [dependencies.reqwest]
-version = "0.11"
+version = "0.12"
 default-features = false
 features = ["rustls-tls", "json"]

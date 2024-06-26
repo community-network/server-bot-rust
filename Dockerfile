@@ -1,4 +1,4 @@
-FROM rust:1.75 AS builder
+FROM rust:1.79 as builder
 WORKDIR /usr/src/myapp
 COPY . .
 ARG github_token
