@@ -40,26 +40,26 @@ You can run it with Docker (Docker Compose):
 version: '3.7'
 
 services:
-    ace-bot-1:
-      image: ghcr.io/community-network/server-bot-rust/server-bot-rust:latest
-      restart: always
-      environment:
-        - token=TOKEN
-        - name=[ACE]#1
-        - platform=pc
-        - channel=0
-        - minplayeramount=20
-        - prevrequestcount=5
-        - startedamount=50
-        - guild=0
-        - game=tunguska
-        - lang=en-us
-      healthcheck:
-        test: ["CMD", "curl", "-f", "http://127.0.0.1:3030/"]
-        interval: "60s"
-        timeout: "3s"
-        start_period: "5s"
-        retries: 3
+  ace-bot-1:
+    image: ghcr.io/community-network/server-bot-rust/server-bot-rust:latest
+    restart: always
+    environment:
+      - token=TOKEN
+      - name=[ACE]#1
+      - platform=pc
+      - channel=0
+      - minplayeramount=20
+      - prevrequestcount=5
+      - startedamount=50
+      - guild=0
+      - game=tunguska
+      - lang=en-us
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3030/"]
+      interval: "60s"
+      timeout: "3s"
+      start_period: "5s"
+      retries: 3
 ```
 
 Or use the executable available [here](https://github.com/community-network/server-bot-rust/releases/latest)
