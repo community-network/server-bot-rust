@@ -14,6 +14,7 @@ serverbanner: (optional) if it has to set the banner image of the bot (defaults 
 name: servername
 lang: language (default en-us)
 platform: from which platform is the server (default pc)
+mins_between_avatar_change: minutes between avatar changes (defaults to 1)
 
 for status in discord:
 minplayeramount: amount of change needed to count

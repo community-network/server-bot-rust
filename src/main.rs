@@ -34,36 +34,40 @@ impl EventHandler for Handler {
         };
 
         let statics = message::Static {
+            server_name: env::var("name")
+                .expect("name wasn't given an argument!")
+                .replace('`', "#")
+                .replace('*', "\\\""),
+            // optional:
             server_id: env::var("guid").unwrap_or_else(|_| "none".to_string()),
             game: env::var("game").unwrap_or_else(|_| "tunguska".to_string()),
             owner_id: env::var("ownerId").unwrap_or_else(|_| "none".to_string()),
             platform: env::var("platform").unwrap_or_else(|_| "pc".to_string()),
             fake_players: env::var("fakeplayers").unwrap_or_else(|_| "no".to_string()),
             set_banner_image: env::var("serverbanner").unwrap_or_else(|_| "yes".to_string()),
-            server_name: env::var("name")
-                .expect("name wasn't given an argument!")
-                .replace('`', "#")
-                .replace('*', "\\\""),
             lang: env::var("lang")
-                .expect("lang wasn't given an argument!")
+                .unwrap_or_else(|_| "en-us".to_string())
                 .to_lowercase(),
+            mins_between_avatar_change: env::var("mins_between_avatar_change")
+                .unwrap_or_else(|_| "1".to_string())
+                .parse::<i32>()
+                .expect("mins_between_avatar_change wasn't given an integer!"),
+            started_amount: env::var("startedamount")
+                .unwrap_or_else(|_| "50".to_string())
+                .parse::<i32>()
+                .expect("startedamount wasn't given an integer!"),
+            message_channel: env::var("channel")
+                .unwrap_or_else(|_| "default_channel_value".to_string())
+                .parse::<u64>()
+                .expect("channel wasn't given an integer!"),
             min_player_amount: env::var("minplayeramount")
-                .expect("minplayeramount wasn't given an argument!")
+                .unwrap_or_else(|_| "20".to_string())
                 .parse::<i32>()
                 .expect("I wasn't given an integer!"),
             amount_of_prev_request: env::var("prevrequestcount")
-                .expect("prevrequestcount wasn't given an argument!")
+                .unwrap_or_else(|_| "5".to_string())
                 .parse::<i32>()
-                .expect("I wasn't given an integer!"),
-            message_channel: env::var("channel")
-                .expect("channel wasn't given an argument!")
-                .parse::<u64>()
-                .expect("I wasn't given an integer!"),
-            started_amount: env::var("startedamount")
-                .expect("startedamount wasn't given an argument!")
-                .parse::<i32>()
-                .expect("I wasn't given an integer!"),
-            mins_between_avatar_change: 1,
+                .expect("prevrequestcount wasn't given an integer!"),
         };
 
         log::info!("Started monitoring server {:#?}", statics.server_name);
