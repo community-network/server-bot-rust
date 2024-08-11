@@ -1,7 +1,7 @@
 use super::message;
 use ab_glyph::{FontRef, PxScale};
 use anyhow::Result;
-use image::{io::Reader as ImageReader, Rgba};
+use image::{ImageReader, Rgba};
 use imageproc::drawing::draw_text_mut;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
@@ -304,7 +304,7 @@ pub async fn gen_img(status: ServerInfo, statics: message::Static) -> Result<Str
         .decode()?;
 
     img2.save("./map.jpg")?;
-    img2.brighten(-25);
+    img2 = img2.brighten(-25);
 
     let font: FontRef = if &statics.game[..] == "kingston" || &statics.game[..] == "bf2042" {
         FontRef::try_from_slice(include_bytes!("BF_Modernista-Regular.ttf") as &[u8]).unwrap()
