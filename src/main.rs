@@ -34,10 +34,7 @@ impl EventHandler for Handler {
         };
 
         let statics = message::Static {
-            server_name: env::var("name")
-                .expect("name wasn't given an argument!")
-                .replace('`', "#")
-                .replace('*', "\\\""),
+            server_name: env::var("name").expect("name wasn't given an argument!"),
             // optional:
             server_id: env::var("guid").unwrap_or_else(|_| "none".to_string()),
             game: env::var("game").unwrap_or_else(|_| "tunguska".to_string()),
