@@ -29,6 +29,7 @@ pub struct Static {
     pub message_channel: u64,
     pub started_amount: i32,
     pub mins_between_avatar_change: i32,
+    pub include_spectators: String,
 }
 
 pub async fn check(
@@ -38,21 +39,21 @@ pub async fn check(
     statics: Static,
 ) -> Result<Global> {
     if statics.message_channel != 40 {
-        let mut server_info = format!(
-            "{}/{} [{}] - {}",
+        // in_spectator
+        let server_info = format!(
+            "{}/{}{}{} - {}",
             status.detailed.current_players,
             status.detailed.max_players,
-            status.detailed.in_que.unwrap_or(0),
+            match status.detailed.in_que.unwrap_or(0) > 0 {
+                true => format!(" [{}]", status.detailed.in_que.unwrap_or(0)),
+                false => "".to_string(),
+            },
+            match &statics.include_spectators[..] == "yes" {
+                true => format!("({})", status.detailed.in_spectator.unwrap_or(0)),
+                false => "".to_string(),
+            },
             status.detailed.server_map
         );
-        if status.detailed.in_que.unwrap_or(0) == 0 {
-            server_info = format!(
-                "{}/{} - {}",
-                status.detailed.current_players,
-                status.detailed.max_players,
-                status.detailed.server_map
-            );
-        }
 
         let mut image_url = "info_image.jpg";
         if status.detailed.server_name.contains("AMG") {

@@ -17,6 +17,8 @@ pub struct MainInfo {
     pub max_players: i32,
     #[serde(rename = "inQue")]
     pub in_que: Option<i32>,
+    #[serde(rename = "inSpectator")]
+    pub in_spectator: Option<i32>,
     #[serde(rename = "smallMode")]
     pub small_mode: String,
     #[serde(rename = "currentMap")]
@@ -49,6 +51,8 @@ pub struct DetailedInfo {
     pub max_players: i32,
     #[serde(rename = "inQueue")]
     pub in_que: Option<i32>,
+    #[serde(rename = "inSpectator")]
+    pub in_spectator: Option<i32>,
     #[serde(rename = "smallmode")]
     pub small_mode: String,
     #[serde(rename = "prefix")]
@@ -219,6 +223,7 @@ async fn get(statics: message::Static, game_id: &String) -> Result<ServerInfo> {
             DetailedInfo {
                 current_players: payload.current_players,
                 max_players: payload.max_players,
+                in_spectator: payload.in_spectator,
                 in_que: payload.in_que,
                 small_mode: payload.small_mode,
                 server_name: payload
@@ -255,23 +260,23 @@ pub async fn change_name(
     statics: message::Static,
     game_id: &String,
 ) -> Result<ServerInfo> {
-    let status = match get(statics, game_id).await {
+    let status = match get(statics.clone(), game_id).await {
         Ok(status) => {
-            let mut server_info = format!(
-                "{}/{} [{}] - {}",
+            let server_info = format!(
+                "{}/{}{}{} - {}",
                 status.detailed.current_players,
                 status.detailed.max_players,
-                status.detailed.in_que.unwrap_or(0),
-                status.detailed.server_map,
+                match status.detailed.in_que.unwrap_or(0) > 0 {
+                    true => format!(" [{}]", status.detailed.in_que.unwrap_or(0)),
+                    false => "".to_string(),
+                },
+                match &statics.include_spectators[..] == "yes" {
+                    true => format!(" ({})", status.detailed.in_spectator.unwrap_or(0)),
+                    false => "".to_string(),
+                },
+                status.detailed.server_map
             );
-            if status.detailed.in_que.unwrap_or(0) == 0 {
-                server_info = format!(
-                    "{}/{} - {}",
-                    status.detailed.current_players,
-                    status.detailed.max_players,
-                    status.detailed.server_map,
-                );
-            }
+
             // change game activity
             ctx.set_activity(Some(ActivityData::playing(server_info)));
 

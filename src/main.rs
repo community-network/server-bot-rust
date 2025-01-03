@@ -65,6 +65,7 @@ impl EventHandler for Handler {
                 .unwrap_or_else(|_| "5".to_string())
                 .parse::<i32>()
                 .expect("prevrequestcount wasn't given an integer!"),
+            include_spectators: env::var("include_spectators").unwrap_or_else(|_| "no".to_string()),
         };
 
         log::info!("Started monitoring server {:#?}", statics.server_name);
