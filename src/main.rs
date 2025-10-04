@@ -12,10 +12,20 @@ use std::{
     {env, time},
 };
 use warp::Filter;
+
+use crate::message::Global;
 mod message;
 mod server_info;
 
 struct Handler;
+
+fn check_env_variables(var_name: &str, i: i32) -> Result<String> {
+    if let Ok(e) = env::var(format!("{}{}", var_name, i)) {
+        Ok(e)
+    } else {
+        Ok(env::var(var_name)?)
+    }
+}
 
 #[serenity::async_trait]
 impl EventHandler for Handler {
@@ -26,21 +36,9 @@ impl EventHandler for Handler {
         let last_update = Arc::new(atomic::AtomicI64::new(0));
         let last_update_clone = Arc::clone(&last_update);
 
-        let mut message_globals = message::Global {
-            game_id: String::from(""),
-            since_empty: false,
-            previous_request: Vec::new(),
-            since_player_trigger: 5,
-        };
+        let mut info: Vec<Global> = Vec::new();
 
-        let statics = message::Static {
-            server_name: env::var("name").expect("name wasn't given an argument!"),
-            // optional:
-            server_id: env::var("guid").unwrap_or_else(|_| "none".to_string()),
-            game: env::var("game").unwrap_or_else(|_| "tunguska".to_string()),
-            owner_id: env::var("ownerId").unwrap_or_else(|_| "none".to_string()),
-            platform: env::var("platform").unwrap_or_else(|_| "pc".to_string()),
-            fake_players: env::var("fakeplayers").unwrap_or_else(|_| "no".to_string()),
+        let mut statics = message::Static {
             set_banner_image: env::var("serverbanner").unwrap_or_else(|_| "yes".to_string()),
             lang: env::var("lang")
                 .unwrap_or_else(|_| "en-us".to_string())
@@ -66,9 +64,48 @@ impl EventHandler for Handler {
                 .parse::<i32>()
                 .expect("prevrequestcount wasn't given an integer!"),
             include_spectators: env::var("include_spectators").unwrap_or_else(|_| "no".to_string()),
+            platform: env::var("platform").unwrap_or_else(|_| "pc".to_string()),
+            game: env::var("game").unwrap_or_else(|_| "tunguska".to_string()),
+            multiple_msg: env::var("multiple_msg").unwrap_or_else(|_| "- On network".to_string()),
+            servers: vec![],
         };
 
-        log::info!("Started monitoring server {:#?}", statics.server_name);
+        let mut current_env_var = Some(0);
+        while let Some(i) = current_env_var {
+            if let Ok(e) = env::var(format!("{}{}", "name", i)) {
+                statics.servers.push(message::Server {
+                    server_name: e,
+                    server_id: check_env_variables("guid", i)
+                        .unwrap_or_else(|_| "none".to_string()),
+                    owner_id: check_env_variables("ownerId", i)
+                        .unwrap_or_else(|_| "none".to_string()),
+                    fake_players: check_env_variables("fakeplayers", i)
+                        .unwrap_or_else(|_| "no".to_string()),
+                });
+                current_env_var = Some(i + 1);
+            } else {
+                current_env_var = None;
+            }
+        }
+        if statics.servers.len() <= 0 {
+            statics.servers.push(message::Server {
+                server_name: env::var("name").expect("name wasn't given an argument!"),
+                // optional
+                server_id: env::var("guid").unwrap_or_else(|_| "none".to_string()),
+                owner_id: env::var("ownerId").unwrap_or_else(|_| "none".to_string()),
+                fake_players: env::var("fakeplayers").unwrap_or_else(|_| "no".to_string()),
+            });
+        }
+
+        log::info!(
+            "Started monitoring server(s) [{}]",
+            statics
+                .servers
+                .iter()
+                .map(|x| x.server_name.clone())
+                .collect::<Vec<String>>()
+                .join(", ")
+        );
 
         tokio::spawn(async move {
             let hello = warp::any().map(move || {
@@ -95,23 +132,14 @@ impl EventHandler for Handler {
             let mut update_avatar = chrono::Utc::now()
                 - chrono::Duration::minutes(statics.mins_between_avatar_change.into());
             loop {
-                let old_message_globals = message_globals.clone();
-                message_globals = match status(
-                    ctx.clone(),
-                    message_globals,
-                    statics.clone(),
-                    update_avatar,
-                )
-                .await
-                {
-                    Ok((item, time)) => {
+                match status(ctx.clone(), &info, statics.clone(), update_avatar).await {
+                    Ok((cur_info, time)) => {
                         update_avatar = time;
-                        item
+                        info = cur_info;
                     }
                     Err(e) => {
                         log::error!("cant get new stats: {:#?}", e);
                         // return old if it cant find new details
-                        old_message_globals.clone()
                     }
                 };
                 last_update.store(Utc::now().timestamp() / 60, atomic::Ordering::Relaxed);
@@ -124,48 +152,52 @@ impl EventHandler for Handler {
 
 async fn status(
     ctx: Context,
-    message_globals: message::Global,
+    info: &Vec<Global>,
     statics: message::Static,
     mut update_avatar: chrono::DateTime<Utc>,
-) -> Result<(message::Global, chrono::DateTime<Utc>)> {
-    let status =
-        server_info::change_name(ctx.clone(), statics.clone(), &message_globals.game_id).await?;
-    let image_loc = server_info::gen_img(status.clone(), statics.clone()).await?;
+) -> Result<(Vec<Global>, chrono::DateTime<Utc>)> {
+    let status = server_info::change_name(ctx.clone(), statics.clone(), &info).await?;
+    if statics.servers.len() == 1 && status.len() == 1 {
+        let image_loc = server_info::gen_img(status[0].clone(), statics.clone()).await?;
 
-    // only allow updating once a minute to avoid spamming the avatar api
-    if update_avatar.add(chrono::Duration::minutes(
-        statics.mins_between_avatar_change.into(),
-    )) <= chrono::Utc::now()
-    {
-        // change avatar
-        let avatar = CreateAttachment::path(image_loc)
-            .await
-            .expect("Failed to read image");
-        let mut user = ctx.cache.current_user().clone();
-
-        let mut new_profile = EditProfile::new().avatar(&avatar);
-        if &statics.set_banner_image[..] == "yes" {
-            let banner = CreateAttachment::path("./map.jpg")
+        // only allow updating once a minute to avoid spamming the avatar api
+        if update_avatar.add(chrono::Duration::minutes(
+            statics.mins_between_avatar_change.into(),
+        )) <= chrono::Utc::now()
+        {
+            // change avatar
+            let avatar = CreateAttachment::path(image_loc)
                 .await
-                .expect("Failed to read banner image");
-            new_profile = new_profile.banner(&banner);
+                .expect("Failed to read image");
+            let mut user = ctx.cache.current_user().clone();
+
+            let mut new_profile = EditProfile::new().avatar(&avatar);
+            if &statics.set_banner_image[..] == "yes" {
+                let banner = CreateAttachment::path("./map.jpg")
+                    .await
+                    .expect("Failed to read banner image");
+                new_profile = new_profile.banner(&banner);
+            }
+            if let Err(e) = user.edit(ctx.clone(), new_profile).await {
+                log::error!(
+                    "Failed to set new avatar: {:?}\n adding timeout before retrying",
+                    e
+                );
+                // add official avatar timeout if discord avatar timeout is reached
+                update_avatar = chrono::Utc::now().add(chrono::Duration::minutes(5));
+            } else {
+                update_avatar = chrono::Utc::now();
+            };
         }
-        if let Err(e) = user.edit(ctx.clone(), new_profile).await {
-            log::error!(
-                "Failed to set new avatar: {:?}\n adding timeout before retrying",
-                e
-            );
-            // add official avatar timeout if discord avatar timeout is reached
-            update_avatar = chrono::Utc::now().add(chrono::Duration::minutes(5));
-        } else {
-            update_avatar = chrono::Utc::now();
-        };
     }
 
-    Ok((
-        message::check(ctx, status.clone(), message_globals, statics).await?,
-        update_avatar,
-    ))
+    let mut shared_info = vec![];
+    for server in status {
+        shared_info
+            .push(message::check(ctx.clone(), server.clone(), server.shared_info, &statics).await?);
+    }
+
+    Ok((shared_info, update_avatar))
 }
 
 #[tokio::main]
