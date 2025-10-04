@@ -1,3 +1,5 @@
+use crate::message::Global;
+
 use super::message;
 use ab_glyph::{FontRef, PxScale};
 use anyhow::Result;
@@ -73,11 +75,12 @@ pub struct DetailedInfo {
 
 #[derive(Debug, Clone)]
 pub struct ServerInfo {
-    pub game_id: Option<String>,
+    pub shared_info: Global,
     pub detailed: DetailedInfo,
 }
 
 async fn request_list(
+    server: &message::Server,
     statics: &message::Static,
     game: &str,
     client: &reqwest::Client,
@@ -85,7 +88,7 @@ async fn request_list(
     let mut url =
         Url::parse(&format!("https://api.gametools.network/{}/servers/", game)[..]).unwrap();
     url.query_pairs_mut()
-        .append_pair("name", &statics.server_name[..])
+        .append_pair("name", &server.server_name[..])
         .append_pair("lang", &statics.lang[..])
         .append_pair("limit", "10");
 
@@ -117,7 +120,11 @@ async fn request_detailed(
         .await?)
 }
 
-async fn get(statics: message::Static, game_id: &String) -> Result<ServerInfo> {
+async fn get(
+    statics: message::Static,
+    server: message::Server,
+    shared_info: &Global,
+) -> Result<ServerInfo> {
     let game;
     if &statics.game[..] == "tunguska" {
         game = "bf1"
@@ -131,15 +138,15 @@ async fn get(statics: message::Static, game_id: &String) -> Result<ServerInfo> {
 
     let client = reqwest::Client::new();
     // try twice first
-    let mut response = request_list(&statics, game, &client).await?;
+    let mut response = request_list(&server, &statics, game, &client).await?;
     if response.get("errors").is_some() {
-        response = request_list(&statics, game, &client).await?;
+        response = request_list(&server, &statics, game, &client).await?;
     }
 
     let mut info = json!(null);
 
     // get via ownerid if newer than bf1
-    if &statics.owner_id[..] != "none"
+    if &server.owner_id[..] != "none"
         && (&statics.game[..] == "casablanca" || &statics.game[..] == "kingston")
     {
         // fail on error
@@ -148,29 +155,29 @@ async fn get(statics: message::Static, game_id: &String) -> Result<ServerInfo> {
             None => anyhow::bail!("Failed to get serverlist from main api"),
         };
         // use ownerid to select server
-        for (i, server) in servers.iter().enumerate() {
-            if serde_json::from_value::<MainInfo>(server.to_owned())?
+        for (i, cur) in servers.iter().enumerate() {
+            if serde_json::from_value::<MainInfo>(cur.to_owned())?
                 .owner_id
                 .unwrap_or_default()
-                == statics.owner_id
+                == server.owner_id
             {
                 info = response["servers"][i].to_owned();
                 break;
             }
         }
     // try with guid (which should be static)
-    } else if &statics.server_id[..] != "none" {
+    } else if &server.server_id[..] != "none" {
         // fail on error
         let servers = match response.get("servers") {
             Some(result) => result.as_array().unwrap(),
             None => anyhow::bail!("Failed to get serverlist from main api"),
         };
         // use ownerid to select server
-        for (i, server) in servers.iter().enumerate() {
-            if serde_json::from_value::<MainInfo>(server.to_owned())?
+        for (i, cur) in servers.iter().enumerate() {
+            if serde_json::from_value::<MainInfo>(cur.to_owned())?
                 .server_id
                 .unwrap_or_default()
-                == statics.server_id
+                == server.server_id
             {
                 info = response["servers"][i].to_owned();
                 break;
@@ -184,7 +191,7 @@ async fn get(statics: message::Static, game_id: &String) -> Result<ServerInfo> {
     }
 
     // update game_id if it can be gathered
-    let mut game_id = game_id.to_string();
+    let mut game_id = shared_info.game_id.to_string();
     if !info.is_null() {
         let server_info = serde_json::from_value::<MainInfo>(info.clone())?;
         if game == "bf2042" {
@@ -213,7 +220,7 @@ async fn get(statics: message::Static, game_id: &String) -> Result<ServerInfo> {
 
             let mut detailed = serde_json::from_value::<DetailedInfo>(detailed_response)?;
 
-            if &statics.game[..] == "bf4" && &statics.fake_players[..] == "yes" {
+            if &statics.game[..] == "bf4" && &server.fake_players[..] == "yes" {
                 detailed.current_players = detailed.fake_players.unwrap_or_default();
             }
             detailed
@@ -250,7 +257,13 @@ async fn get(statics: message::Static, game_id: &String) -> Result<ServerInfo> {
 
     // game_id is saved if server cant be found with search
     Ok(ServerInfo {
-        game_id: Some(game_id),
+        shared_info: Global {
+            server_name: server.server_name,
+            game_id: game_id,
+            since_empty: shared_info.since_empty,
+            previous_request: shared_info.previous_request.clone(),
+            since_player_trigger: shared_info.since_player_trigger,
+        },
         detailed,
     })
 }
@@ -258,39 +271,104 @@ async fn get(statics: message::Static, game_id: &String) -> Result<ServerInfo> {
 pub async fn change_name(
     ctx: Context,
     statics: message::Static,
-    game_id: &String,
-) -> Result<ServerInfo> {
-    let status = match get(statics.clone(), game_id).await {
-        Ok(status) => {
-            let server_info = format!(
-                "{}/{}{}{} - {}",
-                status.detailed.current_players,
-                status.detailed.max_players,
-                match status.detailed.in_que.unwrap_or(0) > 0 {
-                    true => format!(" [{}]", status.detailed.in_que.unwrap_or(0)),
-                    false => "".to_string(),
-                },
-                match &statics.include_spectators[..] == "yes" {
-                    true => format!(" ({})", status.detailed.in_spectator.unwrap_or(0)),
-                    false => "".to_string(),
-                },
-                status.detailed.server_map
-            );
+    game_ids: &Vec<Global>,
+) -> Result<Vec<ServerInfo>> {
+    let mut results = Vec::new();
+    for (i, server) in statics.servers.iter().enumerate() {
+        match get(
+            statics.clone(),
+            server.clone(),
+            game_ids.get(i).unwrap_or_default(),
+        )
+        .await
+        {
+            Ok(status) => results.push(status.clone()),
+            Err(e) => {
+                if statics.servers.len() > 1 {
+                    println!(
+                        "Failed to get new serverinfo for server '{}': {:#?}",
+                        server.server_name, e
+                    )
+                } else {
+                    let server_info = "¯\\_(ツ)_/¯ server not found";
+                    ctx.set_activity(Some(ActivityData::playing(server_info)));
 
-            // change game activity
-            ctx.set_activity(Some(ActivityData::playing(server_info)));
+                    anyhow::bail!(format!("Failed to get new serverinfo: {:#?}", e))
+                }
+            }
+        };
+    }
 
-            status
+    if statics.servers.len() > 1 {
+        let mut total = DetailedInfo {
+            current_players: 0,
+            max_players: 0,
+            in_que: Some(0),
+            in_spectator: Some(0),
+            small_mode: "".to_string(),
+            server_name: "".to_string(),
+            server_map: "".to_string(),
+            map_url: "".to_string(),
+            map_mode: "".to_string(),
+            region: "".to_string(),
+            favorites: "".to_string(),
+            fake_players: Some(0),
+        };
+        for server in results.clone() {
+            total.current_players += server.detailed.current_players;
+            total.max_players += server.detailed.max_players;
+            total.in_que = match total.in_que {
+                Some(x) => Some(x + server.detailed.in_que.unwrap_or_default()),
+                None => Some(server.detailed.in_que.unwrap_or_default()),
+            };
+            total.in_spectator = match total.in_spectator {
+                Some(x) => Some(x + server.detailed.in_spectator.unwrap_or_default()),
+                None => Some(server.detailed.in_spectator.unwrap_or_default()),
+            };
+            total.fake_players = match total.fake_players {
+                Some(x) => Some(x + server.detailed.fake_players.unwrap_or_default()),
+                None => Some(server.detailed.fake_players.unwrap_or_default()),
+            };
         }
-        Err(e) => {
-            let server_info = "¯\\_(ツ)_/¯ server not found";
-            ctx.set_activity(Some(ActivityData::playing(server_info)));
+        let server_info = format!(
+            "{}/{}{}{} {}",
+            total.current_players,
+            total.max_players,
+            match total.in_que.unwrap_or(0) > 0 {
+                true => format!(" [{}]", total.in_que.unwrap_or(0)),
+                false => "".to_string(),
+            },
+            match &statics.include_spectators[..] == "yes" {
+                true => format!(" ({})", total.in_spectator.unwrap_or(0)),
+                false => "".to_string(),
+            },
+            statics.multiple_msg
+        );
 
-            anyhow::bail!(format!("Failed to get new serverinfo: {:#?}", e))
-        }
-    };
+        // change game activity
+        ctx.set_activity(Some(ActivityData::playing(server_info)));
+        return Ok(results.clone());
+    } else {
+        let status = results[0].clone();
+        let server_info = format!(
+            "{}/{}{}{} - {}",
+            status.detailed.current_players,
+            status.detailed.max_players,
+            match status.detailed.in_que.unwrap_or(0) > 0 {
+                true => format!(" [{}]", status.detailed.in_que.unwrap_or(0)),
+                false => "".to_string(),
+            },
+            match &statics.include_spectators[..] == "yes" {
+                true => format!(" ({})", status.detailed.in_spectator.unwrap_or(0)),
+                false => "".to_string(),
+            },
+            status.detailed.server_map
+        );
 
-    Ok(status)
+        // change game activity
+        ctx.set_activity(Some(ActivityData::playing(server_info)));
+        return Ok(vec![status.clone()]);
+    }
 }
 
 pub async fn gen_img(status: ServerInfo, statics: message::Static) -> Result<String> {

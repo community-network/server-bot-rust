@@ -5,38 +5,66 @@ use serenity::{
     client::Context,
     model::id::ChannelId,
 };
+use std::sync::LazyLock;
 
 #[derive(Clone, Debug)]
 pub struct Global {
+    pub server_name: String,
     pub game_id: String,
     pub since_empty: bool,
     pub previous_request: Vec<i32>,
     pub since_player_trigger: i32,
 }
 
+static DEFAULT_G: LazyLock<Global> = LazyLock::new(|| Global {
+    server_name: "".to_string(),
+    game_id: "".to_string(),
+    since_empty: false,
+    previous_request: Vec::new(),
+    since_player_trigger: 5,
+});
+
+impl<'a> Default for &'a Global {
+    fn default() -> &'a Global {
+        &DEFAULT_G
+    }
+}
+
+impl Default for Global {
+    fn default() -> Global {
+        DEFAULT_G.clone()
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Static {
-    pub server_id: String,
-    pub game: String,
-    pub platform: String,
-    pub owner_id: String,
-    pub fake_players: String,
     pub set_banner_image: String,
-    pub server_name: String,
     pub lang: String,
+    pub mins_between_avatar_change: i32,
+    pub servers: Vec<Server>,
     pub min_player_amount: i32,
     pub amount_of_prev_request: i32,
     pub message_channel: u64,
     pub started_amount: i32,
-    pub mins_between_avatar_change: i32,
     pub include_spectators: String,
+    pub game: String,
+    pub platform: String,
+    pub multiple_msg: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct Server {
+    pub server_name: String,
+    pub server_id: String,
+    pub owner_id: String,
+    pub fake_players: String,
 }
 
 pub async fn check(
     ctx: Context,
     status: server_info::ServerInfo,
     mut globals: Global,
-    statics: Static,
+    statics: &Static,
 ) -> Result<Global> {
     if statics.message_channel != 40 {
         // in_spectator
@@ -139,7 +167,7 @@ pub async fn check(
             .push(status.detailed.current_players); // add current in back
     };
 
-    globals.game_id = status.game_id.unwrap_or_default();
+    globals.game_id = status.shared_info.game_id;
     Ok(globals)
 }
 
@@ -160,14 +188,14 @@ pub async fn send(
     let mut gather_type = "gameid";
     if statics.game == "kingston" {
         gather_type = "serverid";
-    } else if status.game_id.clone().unwrap_or_default().contains(':') {
+    } else if status.shared_info.clone().game_id.contains(':') {
         gather_type = "serverip";
     }
     let server_link = format!(
         "https://gametools.network/servers/{}/{}/{}/{}",
         games.get(&statics.game[..]).unwrap_or(&&statics.game[..]),
         gather_type,
-        status.game_id.clone().unwrap_or_default(),
+        status.shared_info.clone().game_id,
         statics.platform
     );
     let footer = CreateEmbedFooter::new(format!("player threshold set to {} players, checks difference of previous {} minutes and in-between",
