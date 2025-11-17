@@ -2,6 +2,9 @@
 
 This bot shows info about your battlefield servers and updates it every 2 minutes, this bot can also send updates when the status of the server changes. same as the python version, but better when needing running 50 at a time.
 
+<img width="234" height="121" alt="image" src="https://github.com/user-attachments/assets/a37afa76-7698-43e8-942c-d1eda3d7161e" />
+
+
 ### Environment items:
 
 ```yaml
