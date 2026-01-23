@@ -26,7 +26,7 @@ channel: channel where it needs to post the message if almost empty etc.
 startedamount: amount of players before it calls the server "started"
 ```
 
-This initially used the game api directly, but to not login to the api constandly (many groups use this, so could block logins) it was changed to reuse our main api. it still uses the codenames for those games for backwards compatability with all locations it was already used.
+This initially used the game api directly, but to not login to the api constandly (many groups use this, so could block logins) it was changed to reuse our main api. it still uses the codenames for those games for backwards compatability with all locations it was already used. but using the shortend game name also works: "bf6"
 
 ### Game names:
 
